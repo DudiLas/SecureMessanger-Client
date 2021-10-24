@@ -1,49 +1,44 @@
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <WS2tcpip.h>
+#include "ClientSocket.h"
 #pragma comment(lib, "ws2_32.lib")
 
 
 int main()
 {
 
-	std::string ipAddress = "127.0.0.1"; //ip Address of the server
-	int port = 8080; // Listening port # on the server
+	/*
+	reading ip:port from server.info file
+	*/
 
-	//Initiallize WinSock
-	WSAData data;
-	WORD ver = MAKEWORD(2, 2);
-	int wsResult = WSAStartup(ver, &data);
-	if (wsResult != 0)
+	std::string ipAddress; //ip Address of the server
+	int port; // Listening port on the server
+	std::string serverInfo;//buffer for the ip:port info
+	std::ifstream serverInfoFile("server.info");//server.info file opening
+
+	std::getline(serverInfoFile, serverInfo);
+
+	//casting data into appropiate ip:port form
+	try
 	{
-		std::cerr << "Cant start winsock, Err #" << wsResult << std::endl;
-		return;
-
+		int pos = serverInfo.find(":");
+		ipAddress = serverInfo.substr(0, pos);
+		port = std::stoi(serverInfo.substr(pos+1));
 	}
-	//Create socket
-	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == INVALID_SOCKET)
+	catch(...)
 	{
-		std::cerr << "Can't create socket, Err #" << WSAGetLastError() << std::endl;
-		WSACleanup();
-		return;
-	}
-
-	//Fill in a hint structure
-	sockaddr_in hint;
-	hint.sin_family = AF_INET;
-	hint.sin_port = htons(port);
-	inet_pton(AF_INET, ipAddress.c_str(), &hint.sin_addr);
-	//connect to the server
-	int connResult = connect(sock, (sockaddr*)& hint, sizeof(hint));
-	if (connResult == SOCKET_ERROR)
-	{
-		std::cerr << "cant connect to server, Err #" << WSAGetLastError() << std::endl;
-		closesocket(sock);
-		WSACleanup();
-		return;
+		std::cerr << "cant resolve ip:port from server.info file" << std::endl;
+		exit(1);
 	}
 
+	ClientSocket* client = new ClientSocket(ipAddress, port);
+
+
+
+	
+	/*
 	//Do-while loop to send and recieve data
 	char buf[4096];
 	std::string userInput;
@@ -70,8 +65,9 @@ int main()
 	//Gracefully close down everything
 	closesocket(sock);
 	WSACleanup();
-	return;
-
+	
+	*/
+	return 0;
 
 
 }
