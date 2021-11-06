@@ -2,27 +2,33 @@
 #define CONTACT
 #include <stdio.h>
 #include <string>
-typedef char uuid_t[16];
+#include "utilities.h"
+
+const int ID_LENGTH = 16;
 class Contact
 {
 	public:
-		void setPublickey(int & publicKey);
-		void setSymetrickey(int & symetricKey);
+		void setPublickey(std::string & publicKey);
+		void setSymetrickey(std::string & symetricKey);
 		
 
-		int getPublickey();
-		int getSymetrickey();
+		std::string getPublickey();
+		std::string getSymetrickey();
 		std::string getName();
-		uuid_t & getID();
+		uuid & getID();
+		int isGood();
 
 		~Contact();
-		Contact(uuid_t&, std::string & name);
+		Contact(uuid&, std::string & name);
+		Contact(Contact& ct);
 
 	private:
-		int * publicKey;
-		int * symetricKey;
+		std::string * publicKey;
+		std::string * symetricKey;
 		std::string * name;
-		uuid_t uuid;
+
+		//remember to look over(should be at ram)
+		uuid id;
 	
 
 };

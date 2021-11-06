@@ -1,28 +1,42 @@
 #include "Contact.h"
 #include <string>
 
-Contact::Contact(uuid_t& uuid, std::string& name)
+Contact::Contact(uuid & id, std::string& name)
 {
-	strcpy_s(this->uuid, uuid);
+	memcpy(this->id.uuid, id.uuid, ID_LENGTH );
 	this->name = new std::string(name);
+	this->symetricKey = new std::string("");
+	this->publicKey = new std::string("");
 }
-
-void Contact::setPublickey(int &  publicKey)
+Contact::Contact(Contact& ct)
 {
-	this->publicKey = new int(publicKey);
+	memcpy(this->id.uuid, ct.getID().uuid, ID_LENGTH);
+	this->name = new std::string(ct.getName());
+	this->symetricKey = new std::string(ct.getPublickey());
+	this->publicKey = new std::string(ct.getSymetrickey());
 }
-void Contact::setSymetrickey(int & symetricKey)
+
+void Contact::setPublickey(std::string &  publicKey)
 {
-	this->symetricKey = new int(symetricKey);
+	this->publicKey = new std::string(publicKey);
+}
+void Contact::setSymetrickey(std::string & symetricKey)
+{
+	this->symetricKey = new std::string(symetricKey);
+}
+
+int Contact::isGood()
+{
+	return *symetricKey == "";
 }
 
 
 
-int Contact::getPublickey()
+std::string Contact::getPublickey()
 {
 	return *publicKey;
 }
-int Contact::getSymetrickey()
+std::string Contact::getSymetrickey()
 {
 	return *symetricKey;
 }
@@ -30,9 +44,9 @@ std::string Contact::getName()
 {
 	return *name;
 }
-uuid_t & Contact::getID()
+uuid & Contact::getID()
 {
-	return uuid;
+	return id;
 }
 
 Contact::~Contact()
@@ -40,5 +54,4 @@ Contact::~Contact()
 	delete publicKey;
 	delete symetricKey;
 	delete name;
-	delete uuid;
 }
