@@ -117,6 +117,17 @@ std::string chTostr(const char* ch, int len)
 
 }
 
+std::string chTostr(const unsigned char* ch, int len)
+{
+	std::string str = "";
+	for (int i = 0; i < len; i++)
+	{
+		str += (char)ch[i];
+	}
+	return str;
+
+}
+
 std::string string_to_hex(const std::string& input)
 {
 	static const char hex_digits[] = "0123456789ABCDEF";

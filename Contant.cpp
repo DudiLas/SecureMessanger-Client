@@ -25,9 +25,14 @@ void Contact::setSymetrickey(std::string & symetricKey)
 	this->symetricKey = new std::string(symetricKey);
 }
 
-int Contact::isGood()
+int Contact::isSymetricKey()
 {
-	return *symetricKey == "";
+	return *symetricKey != "";
+}
+
+int Contact::isPublicKey()
+{
+	return *publicKey != "";
 }
 
 

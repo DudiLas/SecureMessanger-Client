@@ -16,7 +16,8 @@ class Contact
 		std::string getSymetrickey();
 		std::string getName();
 		uuid & getID();
-		int isGood();
+		int isSymetricKey();
+		int isPublicKey();
 
 		~Contact();
 		Contact(uuid&, std::string & name);

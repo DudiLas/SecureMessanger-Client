@@ -19,6 +19,7 @@ class ClientSocket
 	public:
 		//socket related
 		ClientSocket(std::string ip, int port);
+		~ClientSocket();
 		void ClientSend(std::string msg, int* err);
 		Message* ClientRecv(int* err);
 
@@ -35,24 +36,27 @@ class ClientSocket
 		int Exists(uuid id);
 		//request related
 		int HandleMessageID(int id);
+
 		void handleReqSym(PullMessage pullMsg);
+		void handleSendSym(PullMessage pullMsg);
+		void handleSendTxt(PullMessage pullMsg);
 
 		//code 10
-		void Register();
+		int Register();
 		//code 20
-		void ReClist();
+		int ReClist();
 		//code 30
-		void RePkey();
+		int RePkey();
 		//code 40
-		void ReWmsg();
+		int ReWmsg();
 		//code 50
-		//void Smsg();
+		int Smsg();
 		//code 51
-		void SreqSkey();
+		int SreqSkey();
 		//code 52
-		//void SSkey();
+		int SSkey();
 		//code 0
-		//void Exit();
+
 
 
 	private:

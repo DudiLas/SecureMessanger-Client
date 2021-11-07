@@ -42,6 +42,16 @@ ClientSocket::ClientSocket(std::string ip, int port)
 
 }
 
+ClientSocket::~ClientSocket()
+{
+	for (auto it = Contacts.begin(); it != Contacts.end(); ++it)
+	{
+		Contact * tempCon = *it;
+		delete tempCon;
+	}
+
+}
+
 
 void ClientSocket::ClientSend(std::string msg, int* err)
 {
@@ -177,38 +187,37 @@ void ClientSocket::setID(uuid id)
 int ClientSocket::HandleMessageID(int msgId)
 {
 	//route to spesific message type
-	if (msgId != 10 && !fileExists("me.info"))
+	if (msgId != 10 && msgId != 0 && !fileExists("me.info"))
 	{
 		std::cout << "ERROR: Unregisted client" << std::endl;
-		return 1;
+		return 0;
 
 	}
 	switch (msgId)
 	{
 	case 10:
-		Register();
+		return Register();
 		break;
 	case 20:
-		ReClist();
+		return ReClist();
 		break;
 	case 30:
-		RePkey();
+		return RePkey();
 		break;
 	case 40:
-		ReWmsg();
+		return ReWmsg();
 		break;
 	case 50:
-		//Smsg();
+		return Smsg();
 		break;
 	case 51:
-		SreqSkey();
+		return SreqSkey();
 		break;
 	case 52:
-		//SSkey();
+		return SSkey();
 		break;
 	case 0:
-		//Exit();
-		break;
+		return 1;
 
 
 
@@ -219,7 +228,7 @@ int ClientSocket::HandleMessageID(int msgId)
 
 }
 
-void ClientSocket::Register()
+int ClientSocket::Register()
 {
 	std::string fileName = "me.info";
 	std::string name;
@@ -230,7 +239,7 @@ void ClientSocket::Register()
 	if (fileExists(fileName))
 	{
 		std::cout << "Error: already registed" << std::endl;
-		return;
+		return 0;
 	}
 	
 	//input the name and copy to me.info
@@ -260,9 +269,9 @@ void ClientSocket::Register()
 	this->ClientSend(msg->to_string(), &err);
 	if (err == SOCKET_ERROR)
 	{
-		std::cout << "could not send to server, try again" << std::endl;
+		std::cout << "could not send to server" << std::endl;
 		delete msg;
-		return;
+		return 1;
 	}
 
 	/*
@@ -274,17 +283,18 @@ void ClientSocket::Register()
 	Message* RecMsg = this->ClientRecv(&err);
 	if (err == SOCKET_ERROR)
 	{
-		std::cout << "could not receive from server, try again" << std::endl;
+		std::cout << "could not receive from server" << std::endl;
 		delete msg;
-		return;
+		return 1;
 	}
 
 	if (RecMsg->Code == ERROR)
 	{
 		std::cout << "ERROR: registration failed, name already exists" << std::endl;
 		delete msg;
-		return;
+		return 0;
 	}
+
 	else if (RecMsg->Code == SUC_REGISTER)
 	{
 		std::ofstream serverInfoFile(fileName);
@@ -293,12 +303,6 @@ void ClientSocket::Register()
 
 		serverInfoFile << myName << std::endl;
 
-		//for (int i = 0; i < UUID_SIZE; ++i)
-		//{
-		//	serverInfoFile << std::hex << (int)(char)(id.uuid[i]);
-		//	std::cout << std::hex << +(int)(char)(id.uuid[i]) << std::endl;
-		//}
-		//serverInfoFile << std::endl;
 		serverInfoFile << string_to_hex(uuidToStr(id)) << std::endl;
 		serverInfoFile << this->privateKey << std::endl;
 		serverInfoFile.close();
@@ -309,13 +313,13 @@ void ClientSocket::Register()
 	
 	delete msg;
 	delete RecMsg;
-	return;
+	return 0;
 
 }
 
 
 
-void ClientSocket::ReClist()
+int ClientSocket::ReClist()
 {
 	//creates message for the server
 	Message* msg = new Message(VERSION, RECEIVE_LIST_CODE);
@@ -327,9 +331,9 @@ void ClientSocket::ReClist()
 	this->ClientSend(msg->to_string(), &err);
 	if (err == SOCKET_ERROR)
 	{
-		std::cout << "could not send to server, try again";
+		std::cout << "could not send to server";
 		delete msg;
-		return;
+		return 1;
 	}
 
 	/*
@@ -341,9 +345,9 @@ void ClientSocket::ReClist()
 	Message* RecMsg = this->ClientRecv(&err);
 	if (err == SOCKET_ERROR)
 	{
-		std::cout << "could not recv from server, try again";
+		std::cout << "could not recv from serverP";
 		delete msg;
-		return;
+		return 1;
 	}
 
 	if (RecMsg->Code == CLIENT_LIST)
@@ -362,7 +366,10 @@ void ClientSocket::ReClist()
 			uuid id;
 			memcpy(id.uuid, ID.c_str(), UUID_SIZE);
 			Contact* ct = new Contact(id, curName);
-			this->addContact(*ct);
+			if (memcmp(this->id.uuid, ct->getID().uuid, UUID_SIZE))
+			{
+				this->addContact(*ct);
+			}
 
 			std::cout << curName << " ";
 			std::cout << hexID << std::endl;
@@ -374,11 +381,12 @@ void ClientSocket::ReClist()
 	//handle closed data
 	delete RecMsg;
 	delete msg;
+	return 0;
 
 }
 
 
-void ClientSocket::RePkey()
+int ClientSocket::RePkey()
 {
 	//creates message for the server
 	Message* msg = new Message(VERSION, PUBLIC_KEY_CODE);
@@ -392,7 +400,7 @@ void ClientSocket::RePkey()
 	if (ct == nullptr)
 	{
 		std::cout << "ERROR: contact not found";
-		return;
+		return 0;
 	}
 	msg->setPayload(uuidToStr(ct->getID()));
 	msg->setID(this->id);
@@ -401,17 +409,18 @@ void ClientSocket::RePkey()
 	this->ClientSend(msg->to_string(), &err);
 	if (err == SOCKET_ERROR)
 	{
-		std::cout << "could not send to server, try again";
+		std::cout << "could not send to server";
 		delete msg;
-		return;
+		return 1;
 	}
 
 	Message* RecMsg = this->ClientRecv(&err);
 	if (err == SOCKET_ERROR)
 	{
-		std::cout << "could not recv from server, try again";
+		std::cout << "could not recv from server";
 		delete msg;
-		return;
+		delete RecMsg;
+		return 1;
 	}
 
 	if (RecMsg->Code == PUBLIC_REQ)
@@ -430,11 +439,12 @@ void ClientSocket::RePkey()
 	//handle closed data
 	delete RecMsg;
 	delete msg;
+	return 0;
 }
 
 
 
-void ClientSocket::SreqSkey()
+int ClientSocket::SreqSkey()
 {
 	//creates message for the server
 	Message* msg = new Message(VERSION, MSG_CODE);
@@ -448,7 +458,8 @@ void ClientSocket::SreqSkey()
 	if (ct == nullptr)
 	{
 		std::cout << "ERROR: contact not found";
-		return;
+		delete msg;
+		return 0;
 	}
 
 	TxtMessage* txtmsg = new TxtMessage(SYM_REQ);
@@ -462,17 +473,111 @@ void ClientSocket::SreqSkey()
 	this->ClientSend(msg->to_string(), &err);
 	if (err == SOCKET_ERROR)
 	{
-		std::cout << "could not send to server, try again";
+		std::cout << "could not send to server";
+		delete txtmsg;
 		delete msg;
-		return;
+
+		return 1;
 	}
 
 	Message* RecMsg = this->ClientRecv(&err);
 	if (err == SOCKET_ERROR)
 	{
-		std::cout << "could not recv from server, try again";
+		std::cout << "could not recv from server";
+		delete RecMsg;
+		delete txtmsg;
 		delete msg;
-		return;
+		return 1;
+	}
+
+	if (RecMsg->Code == MSG_REC)
+	{
+		std::cout << "Message succesfully recieved" << std::endl;
+
+	}
+
+
+	//handle closed data
+	delete RecMsg;
+	delete txtmsg;
+	delete msg;
+	return 0;
+
+
+}
+
+
+int ClientSocket::SSkey()
+{
+	//creates message for the server
+	Message* msg = new Message(VERSION, MSG_CODE);
+	int err;
+	std::string name;
+
+	std::cout << "Enter Name: ";
+	getline(std::cin, name);
+
+	Contact* ct = this->findContact(name);
+	if (ct == nullptr)
+	{
+		std::cout << "ERROR: contact not found" << std::endl;
+		return 0;
+	}
+
+	TxtMessage* txtmsg = new TxtMessage(SEND_SYM);
+	txtmsg->setID(ct->getID());
+
+	if (!ct->isPublicKey())
+	{
+		std::cout << "ERROR: public key not found" << std::endl;
+		delete msg;
+		delete txtmsg;
+		return 0;
+	}
+	std::string publicKey = ct->getPublickey();
+
+	std::string symKey;
+	if (!ct->isSymetricKey())
+	{
+		// 1. Generate a key and initialize an AESWrapper. You can also create AESWrapper with default constructor which will automatically generates a random key.
+		unsigned char key[AESWrapper::DEFAULT_KEYLENGTH];
+		AESWrapper::GenerateKey(key, AESWrapper::DEFAULT_KEYLENGTH);
+		symKey = chTostr((const char *)key, AESWrapper::DEFAULT_KEYLENGTH);
+		ct->setSymetrickey(symKey);
+	}
+	else
+	{
+		symKey = ct->getSymetrickey();
+	}
+
+
+	RSAPublicWrapper rsapub(ct->getPublickey());
+	std::string cipher = rsapub.encrypt(symKey.c_str(), symKey.length());	// you can encrypt a const char* or an std::string
+
+
+	txtmsg->setPayload(cipher);
+
+	msg->setPayload(txtmsg->to_string());
+	msg->setID(this->id);
+
+	//send message to server & handle error
+	this->ClientSend(msg->to_string(), &err);
+	if (err == SOCKET_ERROR)
+	{
+		std::cout << "could not send to server";
+		delete msg;
+		delete txtmsg;
+		return 1;
+	}
+
+	Message* RecMsg = this->ClientRecv(&err);
+	if (err == SOCKET_ERROR)
+	{
+		std::cout << "could not recv from server";
+		delete msg;
+		delete txtmsg;
+		delete RecMsg;
+		return 1;
 	}
 
 	if (RecMsg->Code == MSG_REC)
@@ -485,11 +590,108 @@ void ClientSocket::SreqSkey()
 	//handle closed data
 	delete RecMsg;
 	delete msg;
+	delete txtmsg;
+	return 0;
 
 
 }
 
-void ClientSocket::ReWmsg()
+
+
+
+
+int ClientSocket::Smsg()
+{
+	
+	//creates message for the server
+	Message* msg = new Message(VERSION, MSG_CODE);
+	int err;
+	std::string name;
+
+	std::cout << "Enter Name: ";
+	getline(std::cin, name);
+
+	Contact* ct = this->findContact(name);
+	if (ct == nullptr)
+	{
+		std::cout << "ERROR: contact not found" << std::endl;
+		return 0;
+	}
+
+	TxtMessage* txtmsg = new TxtMessage(SEND_MSG);
+	txtmsg->setID(ct->getID());
+
+	if (!ct->isSymetricKey())
+	{
+		std::cout << "ERROR: symetric key not found" << std::endl;
+		return 0;
+	}
+	std::string symKey = ct->getSymetrickey();
+
+	std::cout << "Enter message: " << std::endl;
+
+	std::string txt = "", buffer = "";
+	getline(std::cin, buffer);
+	while (buffer != "")
+	{
+		txt += buffer + '\n';
+		getline(std::cin, buffer);
+	}
+
+
+	
+
+
+	AESWrapper aes((unsigned char *)symKey.c_str(), AESWrapper::DEFAULT_KEYLENGTH);
+
+	// 2. encrypt a message (plain text)
+	std::string cipher = aes.encrypt(txt.c_str(), txt.length());
+
+
+	txtmsg->setPayload(cipher);
+
+	msg->setPayload(txtmsg->to_string());
+	msg->setID(this->id);
+
+	//send message to server & handle error
+	this->ClientSend(msg->to_string(), &err);
+	if (err == SOCKET_ERROR)
+	{
+		std::cout << "could not send to server";
+		delete msg;
+		return 1;
+	}
+
+	Message* RecMsg = this->ClientRecv(&err);
+	if (err == SOCKET_ERROR)
+	{
+		std::cout << "could not recv from server";
+		delete msg;
+		return 1;
+	}
+
+	if (RecMsg->Code == MSG_REC)
+	{
+		std::cout << "Message succesfully recieved" << std::endl;
+
+	}
+
+
+	//handle closed data
+	delete RecMsg;
+	delete msg;
+	delete txtmsg;
+	return 0;
+
+
+}
+
+
+
+
+
+
+int ClientSocket::ReWmsg()
 {
 	//creates message for the server
 	Message* msg = new Message(VERSION, PULL_CODE);
@@ -505,9 +707,9 @@ void ClientSocket::ReWmsg()
 	this->ClientSend(msg->to_string(), &err);
 	if (err == SOCKET_ERROR)
 	{
-		std::cout << "could not send to server, try again";
+		std::cout << "could not send to server";
 		delete msg;
-		return;
+		return 1;
 	}
 
 
@@ -515,9 +717,9 @@ void ClientSocket::ReWmsg()
 	Message* RecMsg = this->ClientRecv(&err);
 	if (err == SOCKET_ERROR)
 	{
-		std::cout << "could not recv from server, try again";
+		std::cout << "could not recv from server";
 		delete msg;
-		return;
+		return 1;
 	}
 
 	int curPos = 0;
@@ -536,9 +738,16 @@ void ClientSocket::ReWmsg()
 				case SYM_REQ:
 					this->handleReqSym(pullMsg);
 					break;
+				case SEND_SYM:
+					this->handleSendSym(pullMsg);
+					break;
+				case SEND_MSG:
+					this->handleSendTxt(pullMsg);
+					break;
 
 
 			}
+			curPos += pullMsg.PayloadSize;
 		}
 
 
@@ -548,7 +757,7 @@ void ClientSocket::ReWmsg()
 	//handle closed data
 	delete RecMsg;
 	delete msg;
-
+	return 0;
 
 
 
@@ -569,6 +778,68 @@ void ClientSocket::handleReqSym(PullMessage pullMsg)
 	std::cout << "Content: "  << std::endl;
 	std::cout << "Request for symetric key" << std::endl;
 	std::cout << "-----------<EOM>---------"  << std::endl;
+
+}
+
+void ClientSocket::handleSendSym(PullMessage pullMsg)
+{
+	Contact* ct = this->findContact(pullMsg.id);
+	if (ct == nullptr)
+	{
+		std::cout << "From: Unknowm User, Message didnt get Recieved" << std::endl;
+		return;
+	}
+
+	std::string cipher = pullMsg.payload;
+
+	RSAPrivateWrapper rsapriv_other(Base64Wrapper::decode(this->privateKey));
+	std::string symKey = rsapriv_other.decrypt(cipher);
+	ct->setSymetrickey(symKey);
+
+
+
+	std::cout << "From: " << ct->getName() << std::endl;
+	std::cout << "Content: " << std::endl;
+	std::cout << "symetric key received" << std::endl;
+	std::cout << "-----------<EOM>---------" << std::endl;
+
+
+}
+
+void ClientSocket::handleSendTxt(PullMessage pullMsg)
+{
+	Contact* ct = this->findContact(pullMsg.id);
+	if (ct == nullptr)
+	{
+		std::cout << "From: Unknowm User, Message didnt get Recieved" << std::endl;
+		return;
+	}
+
+	std::string cipher = pullMsg.payload;
+	std::string symKey;
+	
+
+	
+
+
+	std::cout << "From: " << ct->getName() << std::endl;
+	std::cout << "Content: " << std::endl;
+
+	if (!ct->isSymetricKey())
+	{
+		std::cout << "cant decrypr message" << std::endl;
+		return;
+	}
+
+	symKey = ct->getSymetrickey();
+	AESWrapper aes((unsigned char*)symKey.c_str(), AESWrapper::DEFAULT_KEYLENGTH);
+
+	// 2. encrypt a message (plain text)
+	std::string decrypt = aes.decrypt(cipher.c_str(), cipher.length());
+
+	std::cout << decrypt;
+	std::cout << "-----------<EOM>---------" << std::endl;
+
 
 }
 

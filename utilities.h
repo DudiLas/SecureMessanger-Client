@@ -44,6 +44,7 @@ std::string sto2s(unsigned short num);
 void fillWithBytes(std::string & data, int nBytes);
 std::string uuidToStr(uuid id);
 std::string chTostr(const char* ch, int len);
+std::string chTostr(const unsigned char* ch, int len);
 int fourBytesToInteger(std::string bytesNum);
 int twoBytesToInteger(std::string bytesNum);
 std::string string_to_hex(const std::string& input);

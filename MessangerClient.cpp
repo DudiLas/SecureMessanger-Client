@@ -97,74 +97,28 @@ int main()
 		
 
 		//resolve command id 
-		cmID = std::stoi(cm);
-		if (!cmID)
+		try
+		{
+			cmID = std::stoi(cm);
+		}
+		catch(...)
 		{
 			std::cout << "ERROR: cant resolve command id, try again\n" << std::endl;
 			continue;
 		}
-		client->HandleMessageID(cmID);
 
 		//route to specific massage type and handle it
-		
-
-		
-		
-		
+		//check if wants to exit as well
+		if (client->HandleMessageID(cmID))
+		{
+			std::cout << "Exiting..." << std::endl;
+			delete client;
+			break;
+		}
 
 	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-	/*
-	//Do-while loop to send and recieve data
-	char buf[4096];
-	std::string userInput;
-	do
-	{
-		//Prompt from user
-		std::cout << "> ";
-		std::getline(std::cin, userInput);
-
-		//Send  the text
-		int sendResult = send(sock, userInput.c_str(), userInput.size() + 1, 0);
-		if (sendResult != SOCKET_ERROR)
-		{
-			//wait for resonse
-			ZeroMemory(buf, 4096);
-			int bytesReceived = recv(sock, buf, 4096, 0);
-			std::cout << std::string(buf, 0, bytesReceived) << std::endl;
-
-		}
-
-
-	} while (userInput.size() > 0);
-
-	//Gracefully close down everything
-	closesocket(sock);
-	WSACleanup();
-	
-	*/
 	return 0;
-
-
 }
 
 
